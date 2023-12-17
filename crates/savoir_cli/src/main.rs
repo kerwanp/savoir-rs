@@ -3,7 +3,7 @@ use std::fs;
 use anyhow::{anyhow, Result};
 use clap::{Parser, Subcommand};
 use log::LevelFilter;
-use savoir::{app::App, integration, interals::AsyncTryFrom};
+use savoir::{app::App, interals::AsyncTryFrom};
 
 #[derive(Parser, Debug)]
 #[command(author, version)]
@@ -47,7 +47,7 @@ async fn main() -> Result<()> {
             }
             Err(e) => Err(anyhow!("Something wrong happened {e}")),
         },
-        Command::Ask { agent, query } => match app.ask(&agent, &query).await {
+        Command::Ask { agent, query } => match app.ask(&agent, "cli", &query).await {
             Ok(res) => {
                 println!("Answer: {res}");
                 Ok(())

@@ -3,11 +3,13 @@ use std::{collections::HashMap, sync::Arc};
 use anyhow::Result;
 use log::{error, info};
 use serde::Deserialize;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, Mutex};
 use weaviate_community::WeaviateClient;
 
 use crate::{
     agent,
+    conversation::Conversation,
+    conversation_store::{in_memory::InMemoryConversationStore, ConversationStore},
     datasource::{self, Datasource},
     document::Document,
     document_store::{self, DocumentStore},
@@ -33,6 +35,7 @@ pub struct App {
     llms: HashMap<String, Arc<Box<dyn Llm>>>,
     agents: HashMap<String, agent::Config>,
     integrations: HashMap<String, integration::Config>,
+    conversation_store: Arc<Mutex<Box<dyn ConversationStore>>>,
 }
 
 #[async_trait::async_trait]
@@ -63,6 +66,7 @@ impl AsyncTryFrom<Config> for App {
             llms,
             agents: value.agents,
             integrations: value.integrations,
+            conversation_store: Arc::new(Mutex::new(Box::<InMemoryConversationStore>::default())),
         })
     }
 }
@@ -114,7 +118,8 @@ impl App {
         self.document_store.query(query).await
     }
 
-    pub async fn ask(&self, agent: &str, query: &str) -> Result<String> {
+    // TODO: Split & clean that
+    pub async fn ask(&self, agent: &str, conversation_id: &str, query: &str) -> Result<String> {
         let agent = self.agent(agent)?;
         let llm = self.llm(&agent.llm)?;
 
@@ -124,15 +129,31 @@ impl App {
 
         let documents = serde_json::to_string(&documents)?;
 
-        let messages = vec![
-            Message::new(
-                message::Role::System,
-                &format!("{}\n{}", &agent.prompt, documents),
-            ),
-            Message::new(message::Role::User, query),
-        ];
+        let mut store = self.conversation_store.lock().await;
+        let conversation = store.get_mut(conversation_id);
 
-        llm.chat(messages).await
+        let conversation = match conversation {
+            Some(conversation) => conversation,
+            None => {
+                let conv = Conversation(vec![Message::new(
+                    message::Role::System,
+                    &format!("{}\n{}", &agent.prompt, documents),
+                )]);
+                store.create(conversation_id, conv)
+            }
+        };
+
+        conversation
+            .0
+            .push(Message::new(message::Role::User, query));
+
+        let res = llm.chat(conversation.clone()).await?;
+
+        conversation
+            .0
+            .push(Message::new(message::Role::Assistant, query));
+
+        Ok(res)
     }
 
     pub async fn synchronize(&self, name: &str) -> Result<()> {

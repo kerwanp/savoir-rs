@@ -16,6 +16,7 @@ pub struct Config {
     signing_secret: String,
     #[serde(default)]
     port: Option<u16>,
+    agent: String,
 }
 
 pub struct SlackIntegration {
@@ -50,7 +51,7 @@ fn error_handler(
 async fn command_event_handler(
     Extension(environment): Extension<Arc<SlackHyperListenerEnvironment>>,
     Extension(event): Extension<SlackCommandEvent>,
-    State(app): State<Arc<App>>,
+    State(state): State<Arc<MyState>>,
 ) -> axum::Json<Value> {
     println!("Received command event: {:?}", event);
 
@@ -59,9 +60,14 @@ async fn command_event_handler(
     match event.command {
         SlackCommandId(cmd) if &cmd == "/ask" => {
             let text = event.text.unwrap();
+            let SlackChannelId(channel_id) = event.channel_id;
 
             tokio::spawn(async move {
-                let response = app.ask("test", &text).await.unwrap();
+                let response = state
+                    .app
+                    .ask(&state.config.agent, &channel_id, &text)
+                    .await
+                    .unwrap();
                 let req = SlackApiPostWebhookMessageRequest::new(
                     SlackMessageContent::new().with_text(response),
                 );
@@ -81,12 +87,21 @@ async fn command_event_handler(
     axum::Json(json! {{ "text": "Loading..." }})
 }
 
+struct MyState {
+    app: App,
+    config: Config,
+}
+
 #[async_trait::async_trait]
 impl Integration for SlackIntegration {
     async fn serve(&self, app: App) -> Result<()> {
-        let app = Arc::new(app);
         let client = Arc::new(SlackClient::new(SlackClientHyperConnector::new()));
         let addr = std::net::SocketAddr::from(([0, 0, 0, 0], self.config.port.unwrap_or(8080)));
+
+        let state = MyState {
+            app,
+            config: self.config.clone(),
+        };
 
         let signing_secret: SlackSigningSecret = self.config.signing_secret.clone().into();
 
@@ -107,7 +122,7 @@ impl Integration for SlackIntegration {
                         .with_event_extractor(SlackEventsExtractors::command_event()),
                 ),
             )
-            .with_state(app);
+            .with_state(Arc::new(state));
 
         axum::Server::bind(&addr)
             .serve(app.into_make_service())

@@ -50,7 +50,6 @@ integrations:
   slack:
     type: slack
     agent: default
-    channel: "#assistant"
     signing_secret: <signing_secret>
     port: 8081
 ```

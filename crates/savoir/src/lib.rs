@@ -1,9 +1,11 @@
-pub mod agent;
+mod agent;
 pub mod app;
-pub mod datasource;
-pub mod document;
-pub mod document_store;
-pub mod integration;
+mod conversation;
+mod conversation_store;
+mod datasource;
+mod document;
+mod document_store;
+mod integration;
 pub mod interals;
 mod llm;
 mod message;

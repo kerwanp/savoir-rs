@@ -1,12 +1,14 @@
 use anyhow::{anyhow, Result};
 use openai_api_rs::v1::{
     api::Client,
-    chat_completion::{self, ChatCompletionMessage, ChatCompletionRequest, MessageRole},
-    common::GPT3_5_TURBO_1106,
+    chat_completion::{ChatCompletionMessage, ChatCompletionRequest, MessageRole},
 };
 use serde::Deserialize;
 
-use crate::message::{Message, Role};
+use crate::{
+    conversation::Conversation,
+    message::{Message, Role},
+};
 
 use super::Llm;
 
@@ -38,7 +40,7 @@ impl From<Config> for OpenAi {
 
 #[async_trait::async_trait]
 impl Llm for OpenAi {
-    async fn chat(&self, messages: Vec<Message>) -> Result<String> {
+    async fn chat(&self, Conversation(messages): Conversation) -> Result<String> {
         let req = ChatCompletionRequest::new(
             self.model.clone(),
             messages
@@ -60,6 +62,7 @@ impl From<Message> for ChatCompletionMessage {
             role: match value.role {
                 Role::User => MessageRole::user,
                 Role::System => MessageRole::system,
+                Role::Assistant => MessageRole::assistant,
             },
             content: value.content,
             function_call: None,
