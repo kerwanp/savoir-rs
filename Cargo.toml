@@ -1,0 +1,41 @@
+# [package]
+# name = "savoir"
+# version = "0.1.0"
+# edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+# [dependencies]
+# async-stream = "0.3.5"
+# clap = { workspace = true }
+# clap_logger = "0.3.3"
+# dotenvy = { version = "0.15.7", features = ["clap"] }
+# futures = "0.3.29"
+# futures-util = "0.3.29"
+# lazy_static = "1.4.0"
+# serde.workspace = true
+# serde_json.workspace = true
+
+[workspace]
+members = ["crates/savoir", "crates/savoir_cli"]
+default-members = ["crates/savoir_cli"]
+[workspace.dependencies]
+savoir = { path = "crates/savoir" }
+serde = { version = "1.0.193", features = ["derive"] }
+serde_json = "1.0.108"
+serde_yaml = "0.9.27"
+thiserror = "1.0.50"
+anyhow = "1.0.75"
+env_logger = "0.10.1"
+log = "0.4.20"
+tokio = { version = "1.35.0", features = ["full"] }
+tokio-stream = "0.1.14"
+async-trait = "0.1.74"
+clap = { version = "4.4.11", features = ["derive"] }
+weaviate-community = "0.2.0"
+google-drive3 = "5.0.3"
+futures-util = "0.3.29"
+uuid = { version = "1.6.1", features = ["v5"] }
+openai-api-rs = "2.1.4"
+slack-morphism = { version = "1.16.1", features = ["hyper", "axum"] }
+axum = "0.6"
