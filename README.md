@@ -1,7 +1,7 @@
 <div align="center">
 <br/>
 
-## Savoir
+# Savoir
 
 ### Create AI assistants with ease.
 
@@ -24,8 +24,42 @@ WIP
 
 # 🚀 Get started 
 
-WIP
+```yaml
+datasources:
+  google:
+    type: google
+    service_account: ./service-account.json
+    subject: john.doe@example.org
 
+llms:
+  openai:
+    type: openai
+    model: gpt-3.5-turbo-1106
+    api_key: <your_api_key>
+
+store:
+  type: weaviate
+  host: http://localhost:8080
+
+agents:
+  default:
+    llm: openai
+    prompt: "You are an helpful assistant that answer the collaborators questions using the following documents. If you do not find an answer in the documents, you simply answer that you do not have enough informations."
+
+integrations:
+  slack:
+    type: slack
+    agent: default
+    channel: "#assistant"
+    signing_secret: <signing_secret>
+    port: 8081
+```
+
+```bash
+$ savoir synchronize google # Start synchronizing the google datasource
+$ savoir ask default "Who is in charge of designing the new landing page?" # Directly ask questions from the command-line
+$ savoir serve slack # Start running the Slack integration
+```
 # 📁 Datasources
 
 | Datasource       | Status         |
